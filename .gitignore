@@ -1,0 +1,12 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Data (DO NOT COMMIT)
+data/pdfs/
+data/vector_store/
+
+# OS / Editor
+.DS_Store
+.vscode/

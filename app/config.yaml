@@ -1,0 +1,13 @@
+ollama_base_url: "http://localhost:11434"
+
+llm_model: "llama3"
+embedding_model: "nomic-embed-text"
+
+pdf_dir: "../data/pdfs"
+vector_store_dir: "../data/vector_store"
+collection_name: "customer_docs"
+
+chunk_size: 1000
+chunk_overlap: 200
+
+top_k: 3
