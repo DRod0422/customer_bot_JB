@@ -2,6 +2,9 @@ import os
 from fastapi import Header, HTTPException
 from fastapi import FastAPI
 from pydantic import BaseModel
+import numpy as np
+from typing import Optional
+
 
 import chromadb
 from chromadb.config import Settings
@@ -65,9 +68,6 @@ def health(x_api_key: str | None = Header(default=None)):
     return {"status": "ok"}
 
 
-from fastapi import Header, HTTPException
-import os
-import requests
 
 # --- tune these ---
 TOP_K = int(os.getenv("RAG_TOP_K", "8"))         # more context helps “What is X?”
@@ -100,6 +100,69 @@ def _format_sources(metadatas: list[dict], ids: list[str]) -> list[dict]:
             "id": ids[i] if i < len(ids) else None
         })
     return sources
+    
+DOC_HINTS = {
+    "i lead me": [
+        "I Lead Me (JB).pdf",
+        "I LEAD ME The 4 Self-Leadership Patterns.pdf",
+    ],
+    "ileadme": [
+        "I Lead Me (JB).pdf",
+        "I LEAD ME The 4 Self-Leadership Patterns.pdf",
+    ],
+}
+
+def detect_doc_hint(text: str) -> Optional[str]:
+    t = (text or "").lower()
+    for hint in DOC_HINTS.keys():
+        if hint in t:
+            return hint
+    return None
+
+def cosine_top_chunks_for_sources(collection, q_emb: list[float], sources: list[str], top_n: int = 4):
+    """
+    Pull chunks for specific sources (via .get $eq), cosine rank locally, return top_n.
+    Works even when Chroma doesn't support $contains in query filters.
+    """
+    q = np.array(q_emb, dtype=np.float32)
+    qn = q / (np.linalg.norm(q) + 1e-9)
+
+    candidates = []
+    for src in sources:
+        r = collection.get(
+            where={"source": {"$eq": src}},
+            include=["documents", "metadatas", "embeddings"],  # ids returned automatically
+        )
+        ids = r.get("ids", [])
+        if not ids:
+            continue
+
+        E = np.array(r["embeddings"], dtype=np.float32)
+        En = E / (np.linalg.norm(E, axis=1, keepdims=True) + 1e-9)
+        sims = En @ qn
+
+        idx = np.argsort(-sims)[: min(top_n, len(sims))]
+        for j in idx:
+            candidates.append({
+                "id": ids[j],
+                "doc": r["documents"][j],
+                "md": r["metadatas"][j],
+                "score": float(sims[j]),
+            })
+
+    candidates.sort(key=lambda x: x["score"], reverse=True)
+
+    # dedupe by id, keep top_n
+    seen = set()
+    out = []
+    for c in candidates:
+        if c["id"] in seen:
+            continue
+        seen.add(c["id"])
+        out.append(c)
+        if len(out) >= top_n:
+            break
+    return out
 
 @app.post("/ask", response_model=AskResponse)
 def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
@@ -114,18 +177,66 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
     # --- retrieve from vector store ---
     # --- retrieve from vector store (CORRECT: query by embedding) ---
     try:
-        q_emb = get_embedding_ollama(question)  # must be same function/model used during ingest
+        # Always embed query with the SAME Ollama embedding model used during ingest
+        q_emb = get_embedding_ollama(question, base_url=BASE_URL, model=EMBED_MODEL)
+    
+        # 1) Optional doc-hint boost
+        hint = detect_doc_hint(question)
+        hint_docs, hint_mds, hint_ids = [], [], []
+        if hint:
+            hinted = cosine_top_chunks_for_sources(
+                collection=collection,
+                q_emb=q_emb,
+                sources=DOC_HINTS[hint],
+                top_n=4
+            )
+            hint_docs = [x["doc"] for x in hinted]
+            hint_mds  = [x["md"] for x in hinted]
+            hint_ids  = [x["id"] for x in hinted]
+    
+        # 2) Normal global retrieval
         results = collection.query(
             query_embeddings=[q_emb],
             n_results=TOP_K,
-            include=["documents", "metadatas", "ids", "distances"]
+            include=["documents", "metadatas", "distances"]  # NOTE: ids returned automatically
         )
         docs = results.get("documents", [[]])[0] or []
         metadatas = results.get("metadatas", [[]])[0] or []
         ids = results.get("ids", [[]])[0] or []
         distances = results.get("distances", [[]])[0] or []
+    
+        # 3) Merge (hinted first), dedupe by (source, chunk_index)
+        merged_docs = []
+        merged_mds = []
+        merged_ids = []
+        seen = set()
+    
+        def k(md):
+            return (md.get("source"), md.get("chunk_index"))
+    
+        for d, md, _id in zip(hint_docs, hint_mds, hint_ids):
+            kk = k(md)
+            if kk not in seen:
+                seen.add(kk)
+                merged_docs.append(d)
+                merged_mds.append(md)
+                merged_ids.append(_id)
+    
+        for d, md, _id in zip(docs, metadatas, ids):
+            kk = k(md)
+            if kk not in seen:
+                seen.add(kk)
+                merged_docs.append(d)
+                merged_mds.append(md)
+                merged_ids.append(_id)
+    
+        # overwrite outputs used downstream
+        docs, metadatas, ids = merged_docs, merged_mds, merged_ids
+
     except Exception:
         docs, metadatas, ids, distances = [], [], [], []
+
+
 
 
     # --- build context string ---
