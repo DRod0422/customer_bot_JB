@@ -45,7 +45,15 @@ if prompt:
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            resp = requests.post(API_URL, headers=headers, json=payload, timeout=90)
+            api_url = f"{API_BASE}/ask"
+            headers = {"Content-Type": "application/json"}
+            if API_KEY:
+                headers["x-api-key"] = API_KEY
+            
+            payload = {"question": prompt}
+            
+            resp = requests.post(api_url, headers=headers, json=payload, timeout=90)
+
 
             if resp.status_code != 200:
                 st.error(f"Sorry — the assistant hit an error ({resp.status_code}). Please try again.")
