@@ -9,6 +9,9 @@ from chromadb.config import Settings
 
 from utils import load_config, extract_text_from_pdf, chunk_text, get_embedding_ollama
 
+ONLY_THESE = [
+    "copy of i lead me",
+]
 
 
 def main():
@@ -42,6 +45,10 @@ def main():
     for pdf_file in pdf_files:
         pdf_path = os.path.join(pdf_dir, pdf_file)
         print(f"\nProcessing: {pdf_file}")
+        name = pdf_file.lower()
+        if not any(x in name for x in ONLY_THESE):
+            continue
+
                 # Skip PDFs already ingested
         existing = collection.get(
             where={"source": pdf_file},
