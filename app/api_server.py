@@ -1,3 +1,4 @@
+import requests
 import os
 from fastapi import Header, HTTPException
 from fastapi import FastAPI
