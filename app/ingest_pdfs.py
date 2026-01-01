@@ -46,8 +46,8 @@ def main():
         pdf_path = os.path.join(pdf_dir, pdf_file)
         print(f"\nProcessing: {pdf_file}")
         name = pdf_file.lower()
-        if not any(x in name for x in ONLY_THESE):
-            continue
+        # if not any(x in name for x in ONLY_THESE):
+        #     continue
 
                 # Skip PDFs already ingested
         existing = collection.get(
