@@ -102,7 +102,7 @@ def main():
         print(f"  Stored: {len(ids)} chunks")
 
     print(f"\nDone. Total chunks stored: {total_added}")
-    print(f"Vector store location: {vector_dir}")
+    print(f"Vector store location: {vector_store_dir}")
     print(f"Collection name: {collection_name}")
 
 
