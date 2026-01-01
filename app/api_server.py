@@ -74,7 +74,7 @@ def health(x_api_key: str | None = Header(default=None)):
 TOP_K = int(os.getenv("RAG_TOP_K", "8"))         # more context helps “What is X?”
 MIN_CHARS_CONTEXT = 200                         # if context too tiny, treat as “no docs”
 OLLAMA_CHAT_URL = os.getenv("OLLAMA_CHAT_URL", "http://127.0.0.1:11434/api/chat")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")  # set to what you actually run
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", LLM_MODEL)
 
 def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
     payload = {"model": model, "messages": messages, "stream": False, "options": {"num_predict":300, "temperature": 0.2}}
