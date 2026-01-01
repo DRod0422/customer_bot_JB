@@ -23,7 +23,7 @@ def main():
     base_url = config["ollama_base_url"]
     embed_model = config["embedding_model"]
 
-    os.makedirs(vector_dir, exist_ok=True)
+    os.makedirs(vector_store_dir, exist_ok=True)
 
     client = chromadb.PersistentClient(
         path=vector_store_dir,
