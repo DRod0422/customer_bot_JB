@@ -9,10 +9,6 @@ from chromadb.config import Settings
 
 from utils import load_config, extract_pages_from_pdf, chunk_text, get_embedding_ollama
 
-ONLY_THESE = [
-    "copy of i lead me",
-]
-
 
 def main():
     config = load_config("config.yaml")
