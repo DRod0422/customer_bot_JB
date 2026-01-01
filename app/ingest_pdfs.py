@@ -67,10 +67,6 @@ def main():
                 normalized_pages.append(str(p))
         
         text = "\n".join(t for t in normalized_pages if t and t.strip())
-                
-            if not text.strip():
-                print("  WARNING: No text extracted (could be scanned PDF). Skipping for now.")
-                continue
         
         chunks = chunk_text(
             text,
