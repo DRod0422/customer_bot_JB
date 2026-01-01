@@ -77,7 +77,7 @@ OLLAMA_CHAT_URL = os.getenv("OLLAMA_CHAT_URL", "http://127.0.0.1:11434/api/chat"
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")  # set to what you actually run
 
 def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
-    payload = {"model": model, "messages": messages, "stream": False}
+    payload = {"model": model, "messages": messages, "stream": False, "options": {"num_predict":300, "temperature": 0.2}}
     r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=180)
     r.raise_for_status()
     data = r.json()
