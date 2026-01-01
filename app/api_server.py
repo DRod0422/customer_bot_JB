@@ -279,7 +279,7 @@ Instructions:
         # Return sources (document-based)
         sources = _format_sources(metadatas, ids)
 
-        return {"answer": answer, "sources": sources}
+        return {"answer": answer, "sources": []}
 
     else:
         # --- fallback: general knowledge ---
