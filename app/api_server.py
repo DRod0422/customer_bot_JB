@@ -102,16 +102,6 @@ def _format_sources(metadatas: list[dict], ids: list[str]) -> list[dict]:
         })
     return sources
     
-DOC_HINTS = {
-    "i lead me": [
-        "I Lead Me (JB).pdf",
-        "I LEAD ME The 4 Self-Leadership Patterns.pdf",
-    ],
-    "ileadme": [
-        "I Lead Me (JB).pdf",
-        "I LEAD ME The 4 Self-Leadership Patterns.pdf",
-    ],
-}
 
 def detect_doc_hint(text: str) -> Optional[str]:
     t = (text or "").lower()
@@ -234,8 +224,8 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
         
         # overwrite outputs used downstream
         # Prioritize hinted docs (first) + a little global backup
-        MAX_HINTED = 6
-        MAX_GLOBAL = 4
+        MAX_HINTED = 3
+        MAX_GLOBAL = 1
         docs = merged_docs[: (MAX_HINTED + MAX_GLOBAL)]
         metadatas = merged_mds[: (MAX_HINTED + MAX_GLOBAL)]
         ids = merged_ids[: (MAX_HINTED + MAX_GLOBAL)]
