@@ -26,7 +26,7 @@ def main():
     os.makedirs(vector_dir, exist_ok=True)
 
     client = chromadb.PersistentClient(
-        path=vector_dir,
+        path=vector_store_dir,
         settings=Settings(allow_reset=True),
     )
     collection = client.get_or_create_collection(name=collection_name)
