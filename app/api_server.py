@@ -233,8 +233,9 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
         # overwrite outputs used downstream
         docs, metadatas, ids = merged_docs, merged_mds, merged_ids
 
-    except Exception:
-        docs, metadatas, ids, distances = [], [], [], []
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Retrieval error: {type(e).__name__}: {e}")
+
 
 
 
