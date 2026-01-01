@@ -168,64 +168,25 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
     # --- retrieve from vector store ---
     # --- retrieve from vector store (CORRECT: query by embedding) ---
     try:
-               # Always embed query with the SAME Ollama embedding model used during ingest
         q_emb = get_embedding_ollama(question, base_url=BASE_URL, model=EMBED_MODEL)
-        
-        # Simple global retrieval (FAST, production-safe)
+    
         results = collection.query(
             query_embeddings=[q_emb],
             n_results=6,
             include=["documents", "metadatas", "distances"]
         )
-        
+    
         docs = results.get("documents", [[]])[0] or []
         metadatas = results.get("metadatas", [[]])[0] or []
         ids = results.get("ids", [[]])[0] or []
-        
-        # Hard cap what we send to the LLM (CPU speed)
+    
+        # hard cap context sent to LLM
         docs = docs[:4]
         metadatas = metadatas[:4]
         ids = ids[:4]
-
     
-        # # 3) Merge (hinted first), dedupe by (source, chunk_index)
-        # merged_docs = []
-        # merged_mds = []
-        # merged_ids = []
-        # seen = set()
-    
-        # def k(md):
-        #     return (md.get("source"), md.get("chunk_index"))
-    
-        # for d, md, _id in zip(hint_docs, hint_mds, hint_ids):
-        #     kk = k(md)
-        #     if kk not in seen:
-        #         seen.add(kk)
-        #         merged_docs.append(d)
-        #         merged_mds.append(md)
-        #         merged_ids.append(_id)
-    
-        # for d, md, _id in zip(docs, metadatas, ids):
-        #     kk = k(md)
-        #     if kk not in seen:
-        #         seen.add(kk)
-        #         merged_docs.append(d)
-        #         merged_mds.append(md)
-        #         merged_ids.append(_id)
-    
-        
-        # overwrite outputs used downstream
-        # Prioritize hinted docs (first) + a little global backup
-        MAX_HINTED = 3
-        MAX_GLOBAL = 1
-        docs = merged_docs[: (MAX_HINTED + MAX_GLOBAL)]
-        metadatas = merged_mds[: (MAX_HINTED + MAX_GLOBAL)]
-        ids = merged_ids[: (MAX_HINTED + MAX_GLOBAL)]
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Retrieval error: {type(e).__name__}: {e}")
-
-
 
 
 
