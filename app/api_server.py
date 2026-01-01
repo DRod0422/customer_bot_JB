@@ -168,33 +168,25 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
     # --- retrieve from vector store ---
     # --- retrieve from vector store (CORRECT: query by embedding) ---
     try:
-        # Always embed query with the SAME Ollama embedding model used during ingest
+               # Always embed query with the SAME Ollama embedding model used during ingest
         q_emb = get_embedding_ollama(question, base_url=BASE_URL, model=EMBED_MODEL)
-    
-        # # 1) Optional doc-hint boost
-        # hint = detect_doc_hint(question)
-        # hint_docs, hint_mds, hint_ids = [], [], []
-        # if hint:
-        #     hinted = cosine_top_chunks_for_sources(
-        #         collection=collection,
-        #         q_emb=q_emb,
-        #         sources=DOC_HINTS[hint],
-        #         top_n=4
-        #     )
-        #     hint_docs = [x["doc"] for x in hinted]
-        #     hint_mds  = [x["md"] for x in hinted]
-        #     hint_ids  = [x["id"] for x in hinted]
-    
-        # # 2) Normal global retrieval
-        # results = collection.query(
-        #     query_embeddings=[q_emb],
-        #     n_results=TOP_K,
-        #     include=["documents", "metadatas", "distances"]  # NOTE: ids returned automatically
-        # )
-        # docs = results.get("documents", [[]])[0] or []
-        # metadatas = results.get("metadatas", [[]])[0] or []
-        # ids = results.get("ids", [[]])[0] or []
-        # distances = results.get("distances", [[]])[0] or []
+        
+        # Simple global retrieval (FAST, production-safe)
+        results = collection.query(
+            query_embeddings=[q_emb],
+            n_results=6,
+            include=["documents", "metadatas", "distances"]
+        )
+        
+        docs = results.get("documents", [[]])[0] or []
+        metadatas = results.get("metadatas", [[]])[0] or []
+        ids = results.get("ids", [[]])[0] or []
+        
+        # Hard cap what we send to the LLM (CPU speed)
+        docs = docs[:4]
+        metadatas = metadatas[:4]
+        ids = ids[:4]
+
     
         # # 3) Merge (hinted first), dedupe by (source, chunk_index)
         # merged_docs = []
@@ -202,24 +194,24 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
         # merged_ids = []
         # seen = set()
     
-        def k(md):
-            return (md.get("source"), md.get("chunk_index"))
+        # def k(md):
+        #     return (md.get("source"), md.get("chunk_index"))
     
-        for d, md, _id in zip(hint_docs, hint_mds, hint_ids):
-            kk = k(md)
-            if kk not in seen:
-                seen.add(kk)
-                merged_docs.append(d)
-                merged_mds.append(md)
-                merged_ids.append(_id)
+        # for d, md, _id in zip(hint_docs, hint_mds, hint_ids):
+        #     kk = k(md)
+        #     if kk not in seen:
+        #         seen.add(kk)
+        #         merged_docs.append(d)
+        #         merged_mds.append(md)
+        #         merged_ids.append(_id)
     
-        for d, md, _id in zip(docs, metadatas, ids):
-            kk = k(md)
-            if kk not in seen:
-                seen.add(kk)
-                merged_docs.append(d)
-                merged_mds.append(md)
-                merged_ids.append(_id)
+        # for d, md, _id in zip(docs, metadatas, ids):
+        #     kk = k(md)
+        #     if kk not in seen:
+        #         seen.add(kk)
+        #         merged_docs.append(d)
+        #         merged_mds.append(md)
+        #         merged_ids.append(_id)
     
         
         # overwrite outputs used downstream
