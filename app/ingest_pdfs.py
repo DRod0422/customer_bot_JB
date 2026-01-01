@@ -14,7 +14,7 @@ def main():
     config = load_config("config.yaml")
 
     pdf_dir = config["pdf_dir"]
-    vector_dir = config["vector_store_dir"]
+    vector_store_dir = config["vector_store_dir"]
     collection_name = config["collection_name"]
 
     chunk_size = int(config["chunk_size"])
