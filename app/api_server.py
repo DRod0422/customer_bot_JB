@@ -171,36 +171,36 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
         # Always embed query with the SAME Ollama embedding model used during ingest
         q_emb = get_embedding_ollama(question, base_url=BASE_URL, model=EMBED_MODEL)
     
-        # 1) Optional doc-hint boost
-        hint = detect_doc_hint(question)
-        hint_docs, hint_mds, hint_ids = [], [], []
-        if hint:
-            hinted = cosine_top_chunks_for_sources(
-                collection=collection,
-                q_emb=q_emb,
-                sources=DOC_HINTS[hint],
-                top_n=4
-            )
-            hint_docs = [x["doc"] for x in hinted]
-            hint_mds  = [x["md"] for x in hinted]
-            hint_ids  = [x["id"] for x in hinted]
+        # # 1) Optional doc-hint boost
+        # hint = detect_doc_hint(question)
+        # hint_docs, hint_mds, hint_ids = [], [], []
+        # if hint:
+        #     hinted = cosine_top_chunks_for_sources(
+        #         collection=collection,
+        #         q_emb=q_emb,
+        #         sources=DOC_HINTS[hint],
+        #         top_n=4
+        #     )
+        #     hint_docs = [x["doc"] for x in hinted]
+        #     hint_mds  = [x["md"] for x in hinted]
+        #     hint_ids  = [x["id"] for x in hinted]
     
-        # 2) Normal global retrieval
-        results = collection.query(
-            query_embeddings=[q_emb],
-            n_results=TOP_K,
-            include=["documents", "metadatas", "distances"]  # NOTE: ids returned automatically
-        )
-        docs = results.get("documents", [[]])[0] or []
-        metadatas = results.get("metadatas", [[]])[0] or []
-        ids = results.get("ids", [[]])[0] or []
-        distances = results.get("distances", [[]])[0] or []
+        # # 2) Normal global retrieval
+        # results = collection.query(
+        #     query_embeddings=[q_emb],
+        #     n_results=TOP_K,
+        #     include=["documents", "metadatas", "distances"]  # NOTE: ids returned automatically
+        # )
+        # docs = results.get("documents", [[]])[0] or []
+        # metadatas = results.get("metadatas", [[]])[0] or []
+        # ids = results.get("ids", [[]])[0] or []
+        # distances = results.get("distances", [[]])[0] or []
     
-        # 3) Merge (hinted first), dedupe by (source, chunk_index)
-        merged_docs = []
-        merged_mds = []
-        merged_ids = []
-        seen = set()
+        # # 3) Merge (hinted first), dedupe by (source, chunk_index)
+        # merged_docs = []
+        # merged_mds = []
+        # merged_ids = []
+        # seen = set()
     
         def k(md):
             return (md.get("source"), md.get("chunk_index"))
