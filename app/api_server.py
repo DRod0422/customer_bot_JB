@@ -93,7 +93,7 @@ def _format_sources(metadatas: list[dict], ids: list[str]) -> list[dict]:
     for i, md in enumerate(metadatas):
         src = md.get("source") or md.get("file") or md.get("filename") or "unknown"
         page = md.get("page")
-        chunk = md.get("chunk")
+        chunk = md.get("chunk_index") or md.get("chunk")
         sources.append({
             "source": src,
             "page": page,
