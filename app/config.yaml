@@ -3,8 +3,8 @@ ollama_base_url: "http://localhost:11434"
 llm_model: "llama3"
 embedding_model: "nomic-embed-text"
 
-pdf_dir: /home/customer_bot/data/pdfs
-vector_store_dir: /home/customer_bot/data/vector_store
+pdf_dir: /home/david-rodriguez/customer_bot/data/pdfs
+vector_store_dir: /home/david-rodriguez/customer_bot/data/vector_store
 collection_name: customer_docs
 
 chunk_size: 1000
