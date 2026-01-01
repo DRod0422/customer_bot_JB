@@ -231,8 +231,14 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
                 merged_mds.append(md)
                 merged_ids.append(_id)
     
+        
         # overwrite outputs used downstream
-        docs, metadatas, ids = merged_docs, merged_mds, merged_ids
+        # Prioritize hinted docs (first) + a little global backup
+        MAX_HINTED = 6
+        MAX_GLOBAL = 4
+        docs = merged_docs[: (MAX_HINTED + MAX_GLOBAL)]
+        metadatas = merged_mds[: (MAX_HINTED + MAX_GLOBAL)]
+        ids = merged_ids[: (MAX_HINTED + MAX_GLOBAL)]
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Retrieval error: {type(e).__name__}: {e}")
