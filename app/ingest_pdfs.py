@@ -53,11 +53,26 @@ def main():
             continue
             
         pages = extract_pages_from_pdf(pdf_path)
-        text = "\n".join(p for p in pages if p)
+        # If pages returns tuples like (page_num, text) or (text, meta), grab the text part
+        normalized_pages = []
+        for p in pages:
+            if p is None:
+                continue
+            if isinstance(p, tuple):
+                # try common tuple shapes: (page_num, text) or (text, meta)
+                # pick the first element that is a string
+                text_part = next((x for x in p if isinstance(x, str)), "")
+                normalized_pages.append(text_part)
+            else:
+                normalized_pages.append(str(p))
         
-        if not text.strip():
-            print("  WARNING: No text extracted (could be scanned PDF). Skipping for now.")
-            continue
+        text = "\n".join(t for t in normalized_pages if t and t.strip())
+        
+                text = "\n".join(p for p in pages if p)
+                
+                if not text.strip():
+                    print("  WARNING: No text extracted (could be scanned PDF). Skipping for now.")
+                    continue
         
         chunks = chunk_text(
             text,
