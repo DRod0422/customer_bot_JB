@@ -65,69 +65,119 @@ def health(x_api_key: str | None = Header(default=None)):
     return {"status": "ok"}
 
 
-@app.post("/ask", response_model=AskResponse)
-def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
-    if API_KEY and x_api_key != API_KEY:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+from fastapi import Header, HTTPException
+import os
+import requests
 
+# --- tune these ---
+TOP_K = int(os.getenv("RAG_TOP_K", "8"))         # more context helps “What is X?”
+MIN_CHARS_CONTEXT = 200                         # if context too tiny, treat as “no docs”
+OLLAMA_CHAT_URL = os.getenv("OLLAMA_CHAT_URL", "http://127.0.0.1:11434/api/chat")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")  # set to what you actually run
 
+def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
+    payload = {"model": model, "messages": messages, "stream": False}
+    r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=180)
+    r.raise_for_status()
+    data = r.json()
+    return data["message"]["content"]
 
-    # 1. Embed question
-    q_emb = get_embedding_ollama(
-        question,
-        base_url=BASE_URL,
-        model=EMBED_MODEL,
-    )
-
-    # 2. Retrieve context
-    results = collection.query(
-        query_embeddings=[q_emb],
-        n_results=TOP_K,
-        include=["documents", "metadatas"],
-    )
-
-    docs = results["documents"][0]
-    metas = results["metadatas"][0]
-
-    context_blocks = []
+def _format_sources(metadatas: list[dict], ids: list[str]) -> list[dict]:
+    """
+    Convert Chroma metadatas into a clean list of sources.
+    Assumes each metadata includes: source, page, chunk (or similar).
+    Falls back gracefully.
+    """
     sources = []
-
-    for doc, meta in zip(docs, metas):
-        src = meta.get("source", "unknown")
-        page = meta.get("page", None)
-        idx = meta.get("chunk_index", -1)
-        doc = doc[:1200]
-
-        page_tag = f"p. {page}" if page else f"chunk {idx}"
-        context_blocks.append(f"[Source: {src}, {page_tag}]\n{doc}")
-
+    for i, md in enumerate(metadatas):
+        src = md.get("source") or md.get("file") or md.get("filename") or "unknown"
+        page = md.get("page")
+        chunk = md.get("chunk")
         sources.append({
             "source": src,
             "page": page,
-            "chunk": idx
+            "chunk": chunk,
+            "id": ids[i] if i < len(ids) else None
         })
+    return sources
 
-    context = "\n\n---\n\n".join(context_blocks)
+@app.post("/ask", response_model=AskResponse)
+def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
+    # --- auth ---
+    if API_KEY and x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {
-            "role": "user",
-            "content": (
-                f"CONTEXT:\n{context}\n\n"
-                f"QUESTION:\n{question}\n\n"
-                "Answer using ONLY the context."
-            ),
-        },
-    ]
+    question = (req.question or "").strip()
+    if not question:
+        return {"answer": "Please enter a question.", "sources": []}
 
-    answer = chat_ollama(
-        messages=messages,
-        base_url=BASE_URL,
-        model=LLM_MODEL,
-    )
+    # --- retrieve from vector store ---
+    try:
+        # Assumes you already have `collection` available in this module
+        # collection = chroma_client.get_or_create_collection(...)
+        results = collection.query(
+            query_texts=[question],
+            n_results=TOP_K,
+            include=["documents", "metadatas", "ids"]
+        )
+        docs = results.get("documents", [[]])[0] or []
+        metadatas = results.get("metadatas", [[]])[0] or []
+        ids = results.get("ids", [[]])[0] or []
+    except Exception as e:
+        # If retrieval fails, still answer using general knowledge (don’t 500)
+        docs, metadatas, ids = [], [], []
 
-    return {
-        "answer": answer,
-        "sources": sources,
-    }
+    # --- build context string ---
+    context = ""
+    if docs:
+        context = "\n\n---\n\n".join(docs).strip()
+
+    use_docs = bool(context) and len(context) >= MIN_CHARS_CONTEXT
+
+    # --- user prompt construction ---
+    if use_docs:
+        user_prompt = f"""
+Question:
+{question}
+
+Document Context (use this first):
+{context}
+
+Instructions:
+- Answer using the document context above.
+- If the concept is described across multiple sections, summarize it clearly.
+- If the documents do not contain enough info, say what is missing and then provide a short general explanation.
+- Provide a clean answer. Do NOT invent citations.
+"""
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt}
+        ]
+
+        answer = _ollama_chat(messages)
+
+        # Return sources (document-based)
+        sources = _format_sources(metadatas, ids)
+
+        return {"answer": answer, "sources": sources}
+
+    else:
+        # --- fallback: general knowledge ---
+        user_prompt = f"""
+Question:
+{question}
+
+Instructions:
+- Answer using general leadership and business knowledge.
+- Be clear and helpful.
+- Do not mention documents or citations unless you actually used them.
+- If you are unsure, say so briefly and ask a clarifying question.
+"""
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt}
+        ]
+        answer = _ollama_chat(messages)
+
+        # No sources when not using docs
+        return {"answer": answer, "sources": []}
