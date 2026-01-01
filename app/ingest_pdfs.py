@@ -51,26 +51,28 @@ def main():
         if existing and existing.get("ids"):
             print(f"  Skipping (already ingested): {pdf_file}  (chunks: {len(existing['ids'])})")
             continue
-
+            
         pages = extract_pages_from_pdf(pdf_path)
-        text = "\n".join([p for p in pages if p])
-
+        text = "\n".join(p for p in pages if p)
+        
         if not text.strip():
             print("  WARNING: No text extracted (could be scanned PDF). Skipping for now.")
             continue
-
+        
         chunks = chunk_text(
             text,
             chunk_size=chunk_size,
             overlap=chunk_overlap
         )
-
-
-
+        
         ids = []
         documents = []
         metadatas = []
         embeddings = []
+
+
+
+
 
         for i, chunk in enumerate(chunks):
             emb = get_embedding_ollama(chunk, base_url=base_url, model=embed_model)
