@@ -112,20 +112,21 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
         return {"answer": "Please enter a question.", "sources": []}
 
     # --- retrieve from vector store ---
+    # --- retrieve from vector store (CORRECT: query by embedding) ---
     try:
-        # Assumes you already have `collection` available in this module
-        # collection = chroma_client.get_or_create_collection(...)
+        q_emb = get_embedding_ollama(question)  # must be same function/model used during ingest
         results = collection.query(
-            query_texts=[question],
+            query_embeddings=[q_emb],
             n_results=TOP_K,
-            include=["documents", "metadatas", "ids"]
+            include=["documents", "metadatas", "ids", "distances"]
         )
         docs = results.get("documents", [[]])[0] or []
         metadatas = results.get("metadatas", [[]])[0] or []
         ids = results.get("ids", [[]])[0] or []
-    except Exception as e:
-        # If retrieval fails, still answer using general knowledge (don’t 500)
-        docs, metadatas, ids = [], [], []
+        distances = results.get("distances", [[]])[0] or []
+    except Exception:
+        docs, metadatas, ids, distances = [], [], [], []
+
 
     # --- build context string ---
     context = ""
