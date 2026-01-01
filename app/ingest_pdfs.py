@@ -52,13 +52,15 @@ def main():
             print(f"  Skipping (already ingested): {pdf_file}  (chunks: {len(existing['ids'])})")
             continue
 
-        text = extract_pages_from_pdf(pdf_path)
+        pages = extract_pages_from_pdf(pdf_path)          # list[str]
+        text = "\n".join([p for p in pages if p])         # make it one big string
+
         if not text.strip():
             print("  WARNING: No text extracted (could be scanned PDF). Skipping for now.")
             continue
 
         chunks = chunk_text(text, chunk_size=chunk_size, overlap=chunk_overlap)
-        print(f"  Chunks: {len(chunks)}")
+
 
         ids = []
         documents = []
