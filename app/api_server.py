@@ -180,10 +180,37 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
         metadatas = results.get("metadatas", [[]])[0] or []
         ids = results.get("ids", [[]])[0] or []
     
-        # hard cap context sent to LLM
+        docs = []
+        metadatas = []
+        ids = []
+        
+        # Fast hint: if the question mentions I Lead Me, prioritize those files
+        q_low = question.lower()
+        if "i lead me" in q_low or "ileadme" in q_low:
+            preferred_sources = ["I Lead Me (JB).pdf", "I LEAD ME The 4 Self-Leadership Patterns.pdf"]
+            for src in preferred_sources:
+                r = collection.get(where={"source": {"$eq": src}}, include=["documents", "metadatas"])
+                # take first ~2 chunks from each doc (simple + fast)
+                docs += (r.get("documents") or [])[:2]
+                metadatas += (r.get("metadatas") or [])[:2]
+                ids += (r.get("ids") or [])[:2]
+        
+        # If still not enough context, add global results
+        if len(docs) < 4:
+            results = collection.query(
+                query_embeddings=[q_emb],
+                n_results=6,
+                include=["documents","metadatas"]
+            )
+            docs += (results.get("documents", [[]])[0] or [])
+            metadatas += (results.get("metadatas", [[]])[0] or [])
+            ids += (results.get("ids", [[]])[0] or [])
+        
+        # Hard cap
         docs = docs[:4]
         metadatas = metadatas[:4]
         ids = ids[:4]
+
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Retrieval error: {type(e).__name__}: {e}")
@@ -207,10 +234,11 @@ Document Context (use this first):
 {context}
 
 Instructions:
-- Answer using the document context above.
-- If the concept is described across multiple sections, summarize it clearly.
-- If the documents do not contain enough info, say what is missing and then provide a short general explanation.
-- Provide a clean answer. Do NOT invent citations.
+- Give a direct, helpful answer first.
+- Use the document context when it supports the answer.
+- If the document context is insufficient, seamlessly use general knowledge to fill gaps.
+- Do NOT say “not mentioned in the documents” or similar unless the user asks about sources.
+- Keep it concise and practical.
 """
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
