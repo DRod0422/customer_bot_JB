@@ -269,9 +269,7 @@ if "messages" not in st.session_state:
 if "chat_count" not in st.session_state:
     st.session_state.chat_count = 1
 
-# ---- Chat container ----
-st.markdown('<div class="jb-card">', unsafe_allow_html=True)
-
+# ---- Chat messages ----
 for m in st.session_state.messages:
     avatar = "jb_avatar.jpeg" if m["role"] == "assistant" else "🧑‍💼"
     
@@ -280,8 +278,6 @@ for m in st.session_state.messages:
         # Show timestamp if available
         if "timestamp" in m:
             st.markdown(f'<div class="message-timestamp">{m["timestamp"]}</div>', unsafe_allow_html=True)
-
-st.markdown("</div>", unsafe_allow_html=True)
 
 # ---- Chat input ----
 prompt = st.chat_input("Ask your question here...")
