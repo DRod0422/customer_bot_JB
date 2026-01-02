@@ -92,11 +92,19 @@ OLLAMA_CHAT_URL = os.getenv("OLLAMA_CHAT_URL", "http://127.0.0.1:11434/api/chat"
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", LLM_MODEL)
 
 def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
-    payload = {"model": model, "messages": messages, "stream": False, "options": {"num_predict":300, "temperature": 0.2}}
-    r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=180)
-    r.raise_for_status()
-    data = r.json()
-    return data["message"]["content"]
+    payload = {
+        "model": model,
+        "messages": messages,
+        "stream": False,
+        "options": {"num_predict": 250, "temperature": 0.2},
+    }
+    try:
+        r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=60)
+        r.raise_for_status()
+        return r.json()["message"]["content"]
+    except requests.exceptions.Timeout:
+        return "I’m taking longer than expected to answer this. Please try again, or ask a shorter question."
+
 
 def _format_sources(metadatas: list[dict], ids: list[str]) -> list[dict]:
     """
@@ -254,7 +262,9 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
     # --- build context string ---
     context = ""
     if docs:
+        MAX_CONTEXT_CHARS = 4000  # start here; tweak later
         context = "\n\n---\n\n".join(docs).strip()
+        context = context[:MAX_CONTEXT_CHARS]
 
     use_docs = bool(context) and len(context) >= MIN_CHARS_CONTEXT
 
