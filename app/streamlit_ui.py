@@ -78,7 +78,7 @@ with col1:
     st.image("jb_avatar.jpeg", width=90)
 with col2:
     st.title("John Bentley's Leadership Assistant")
-    st.caption("Ask anything about JB’s training, books, and leadership frameworks.")
+    st.caption("Ask anything about John Bentley’s training, books, and leadership frameworks.")
     # st.rerun()
 
 # ---- Health check (fast) ----
