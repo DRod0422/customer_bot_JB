@@ -2,17 +2,11 @@ import streamlit as st
 import requests
 import time
 
-col1, col2 = st.columns([1, 6], vertical_alignment="center")
-with col1:
-    st.image("jb_avatar.jpeg", width=90)
-with col2:
-    st.title("JB Leadership Assistant")
-    st.caption("Ask anything about JB’s training, books, and leadership frameworks.")
 
 # ----------------------------
 # Page config
 # ----------------------------
-st.set_page_config(page_title="John Bentley AI Assistant", layout="centered")
+# st.set_page_config(page_title="John Bentley AI Assistant", layout="centered")
 
 API_BASE = st.secrets.get("API_BASE", "http://127.0.0.1:8000")
 API_KEY = st.secrets.get("X_API_KEY", "")
@@ -79,16 +73,12 @@ st.markdown(
 )
 
 # ---- Header row: title left, reset button right ----
-col1, col2 = st.columns([0.85, 0.15], vertical_alignment="center")
+col1, col2 = st.columns([1, 6], vertical_alignment="center")
 with col1:
-    st.markdown('<div class="jb-title">John Bentley’s AI Assistant</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="jb-subtitle">Experience and leadership questions 24 hours a day. Ask him Anything!</div>',
-        unsafe_allow_html=True
-    )
+    st.image("jb_avatar.jpeg", width=90)
 with col2:
-    if st.button("↻", help="Reset chat", use_container_width=True):
-        st.session_state.messages = []
+    st.title("JB Leadership Assistant")
+    st.caption("Ask anything about JB’s training, books, and leadership frameworks.")
         st.rerun()
 
 # ---- Health check (fast) ----
