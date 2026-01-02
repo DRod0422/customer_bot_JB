@@ -49,10 +49,9 @@ if prompt:
             headers = {"Content-Type": "application/json"}
             if API_KEY:
                 headers["x-api-key"] = API_KEY
-            
             payload = {"question": prompt}
             
-            resp = requests.post(api_url, headers=headers, json=payload, timeout=90)
+            resp = requests.post(api_url, headers=headers, json=payload, timeout=240)
 
 
             if resp.status_code != 200:
