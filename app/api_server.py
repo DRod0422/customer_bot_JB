@@ -112,8 +112,8 @@ def is_ileadme_intent(q: str) -> bool:
 
 
 # --- tune these ---
-TOP_K = int(os.getenv("RAG_TOP_K", "8"))         # more context helps “What is X?”
-MIN_CHARS_CONTEXT = 200                         # if context too tiny, treat as “no docs”
+TOP_K = int(os.getenv("RAG_TOP_K", "8"))
+MIN_CHARS_CONTEXT = 200
 OLLAMA_CHAT_URL = os.getenv("OLLAMA_CHAT_URL", "http://127.0.0.1:11434/api/chat")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", LLM_MODEL)
 
@@ -122,14 +122,46 @@ def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
         "model": model,
         "messages": messages,
         "stream": False,
-        "options": {"num_predict": 900, "temperature": 0.2},
+        "options": {
+            "num_predict": 2048,      # ← Increased from 900
+            "temperature": 0.2,
+            "num_ctx": 8192,          # ← Increased from 2048
+            "top_p": 0.9
+        },
     }
     try:
         r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=180)
         r.raise_for_status()
         return r.json()["message"]["content"]
     except requests.exceptions.Timeout:
-        return "I’m taking longer than expected to answer this. Please try again, or ask a shorter question."
+        return "I'm taking longer than expected to answer this. Please try again, or ask a shorter question."
+
+# ADD THIS NEW FUNCTION HERE:
+def _ollama_chat_with_continuation(messages: list[dict], model: str = OLLAMA_MODEL, max_continuations: int = 2) -> str:
+    """Chat with automatic continuation if response is cut off."""
+    full_response = ""
+    continuation_count = 0
+    
+    while continuation_count <= max_continuations:
+        raw_answer = _ollama_chat(messages, model).strip()
+        full_response += ("\n" if full_response else "") + raw_answer
+        
+        # Check if response completed
+        if "<END>" in raw_answer:
+            break
+            
+        # Check if we hit token limit (response ends mid-sentence)
+        if raw_answer and not raw_answer.endswith((".", "!", "?", "<END>")):
+            messages.append({"role": "assistant", "content": raw_answer})
+            messages.append({
+                "role": "user",
+                "content": "Continue exactly where you left off. Finish any cut-off bullets. End with <END>."
+            })
+            continuation_count += 1
+        else:
+            break
+    
+    return full_response.replace("<END>", "").strip()
 
 
 def _format_sources(metadatas: list[dict], ids: list[str]) -> list[dict]:
@@ -317,27 +349,15 @@ Formatting:
 
 """
 
-        messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt}
-        ]
-        
-        raw_answer = _ollama_chat(messages).strip()
-        
-        # If the model didn't signal completion, ask it to continue
-        if "<END>" not in raw_answer:
-            messages.append({"role": "assistant", "content": raw_answer})
-            messages.append({
-                "role": "user",
-                "content": "Continue exactly where you left off. Finish any cut-off bullets. End with <END>."
-            })
-            raw_answer2 = _ollama_chat(messages).strip()
-            raw_answer = raw_answer + "\n" + raw_answer2
-        
-        answer = raw_answer.replace("<END>", "").strip()
-        
-        sources = _format_sources(metadatas, ids)
-        return {"answer": answer, "sources": sources}
+        # In the use_docs section (around line 200):
+messages = [
+    {"role": "system", "content": SYSTEM_PROMPT},
+    {"role": "user", "content": user_prompt}
+]
+
+
+# If the model didn't signal completion, ask it to continue
+answer = _ollama_chat_with_continuation(messages)
 
 
     else:
@@ -356,24 +376,9 @@ Formatting:
 - Do not use the "•" character.
 """
 
-        messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt}
-        ]
-       raw_answer = _ollama_chat(messages).strip()
-        
-        # If the model didn't signal completion, ask it to continue
-        if "<END>" not in raw_answer:
-            messages.append({"role": "assistant", "content": raw_answer})
-            messages.append({
-                "role": "user",
-                "content": "Continue exactly where you left off. Finish any cut-off bullets. End with <END>."
-            })
-            raw_answer2 = _ollama_chat(messages).strip()
-            raw_answer = raw_answer + "\n" + raw_answer2
-        
-        answer = raw_answer.replace("<END>", "").strip()
-        
-        sources = _format_sources(metadatas, ids)
-        return {"answer": answer, "sources": sources}
-             
+messages = [
+    {"role": "system", "content": SYSTEM_PROMPT},
+    {"role": "user", "content": user_prompt}
+]
+
+answer = _ollama_chat_with_continuation(messages)
