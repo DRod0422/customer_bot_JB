@@ -99,7 +99,12 @@ if "messages" not in st.session_state:
 st.markdown('<div class="jb-card">', unsafe_allow_html=True)
 
 for m in st.session_state.messages:
-    with st.chat_message(m["role"], avatar=st.image("jb_avatar.jpeg"):
+    if m["role"] == "assistant":
+        avatar = "jb_avatar.jpeg"   # path relative to this file
+    else:
+        avatar = "🧑‍💼"  # or None
+
+    with st.chat_message(m["role"], avatar=avatar):
         st.markdown(m["content"])
 
 st.markdown("</div>", unsafe_allow_html=True)
