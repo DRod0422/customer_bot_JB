@@ -49,7 +49,7 @@ st.markdown(
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(255,255,255,0.08);
         border-radius: 18px;
-        padding: 18px 18px 8px 18px;
+        padding: 6px 18px 8px 18px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.35);
       }
 
@@ -99,7 +99,7 @@ if "messages" not in st.session_state:
 st.markdown('<div class="jb-card">', unsafe_allow_html=True)
 
 for m in st.session_state.messages:
-    with st.chat_message(m["role"]):
+    with st.chat_message(m["role", avatar=st.image("jb_avatar.jpeg"]):
         st.markdown(m["content"])
 
 st.markdown("</div>", unsafe_allow_html=True)
