@@ -48,6 +48,21 @@ Behavior rules:
 When answering, speak naturally as a human instructor would.
 Do not explain whether something is or is not explicitly stated in documents.
 If a concept is clearly represented across the materials, explain it confidently.
+
+COMPLETENESS + NO TRAILING OFF RULE:
+
+- Never end an answer mid-sentence or mid-bullet.
+- Every bullet must be a complete thought: include a clear point + a brief explanation.
+- If you are approaching the output limit, finish the current bullet fully, then stop.
+- Prefer fewer complete bullets over more incomplete bullets.
+- Use short paragraphs inside bullets if needed for clarity.
+
+BULLET DEPTH RULE:
+
+When responding in bullets, format each bullet as:
+- Bold heading + 2–4 sentences of explanation + 1 practical example or action step.
+
+
 """
 
 # -------------------------
@@ -99,7 +114,7 @@ def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
         "model": model,
         "messages": messages,
         "stream": False,
-        "options": {"num_predict": 120, "temperature": 0.2},
+        "options": {"num_predict": 900, "temperature": 0.2},
     }
     try:
         r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=60)
