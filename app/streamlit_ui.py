@@ -116,7 +116,7 @@ if prompt:
     with st.chat_message("user", avatar= "🧑‍💼" ):
         st.markdown(prompt)
 
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar="jb_avatar.jpeg"):
         with st.spinner("Thinking…"):
             try:
                 resp = requests.post(
