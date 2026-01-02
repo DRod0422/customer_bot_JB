@@ -205,9 +205,9 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
                 include=["documents", "metadatas"]
             )
 
-        docs = results.get("documents", [[]])[0] or []
-        metadatas = results.get("metadatas", [[]])[0] or []
-        ids = results.get("ids", [[]])[0] or []
+        # docs = results.get("documents", [[]])[0] or []
+        # metadatas = results.get("metadatas", [[]])[0] or []
+        # ids = results.get("ids", [[]])[0] or []
 
         
    except Exception as e:
