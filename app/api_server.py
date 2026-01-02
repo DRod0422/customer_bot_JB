@@ -184,80 +184,71 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
     # --- retrieve from vector store ---
     # --- retrieve from vector store (CORRECT: query by embedding) ---
     # --- Retrieval (Chroma) ---
+       # --- Retrieval (Chroma) ---
     docs: list[str] = []
     metadatas: list[dict] = []
     ids: list[str] = []
-    
-    try:
-        TEACHER_MODE = not is_reference_intent(question)
-    
-        # embed query using SAME embed model used during ingest
-        q_emb = get_embedding_ollama(
-            question,
-            base_url=BASE_URL,
-            model=EMBED_MODEL
-        )
-    
-        # default query args
-        query_kwargs = {
-            "query_embeddings": [q_emb],
-            "n_results": 6,
-            "include": ["documents", "metadatas"],  # ids are returned automatically
-        }
-    
-        # if the question is about I Lead Me, force retrieval from those PDFs
-        if is_ileadme_intent(question):
-            query_kwargs["where"] = {
-                "source": {"$in": [
-                    "I Lead Me (JB).pdf",
-                    "I LEAD ME The 4 Self-Leadership Patterns.pdf"
-                ]}
-            }
-    
-        results = collection.query(**query_kwargs)
-    
-        docs = (results.get("documents") or [[]])[0] or []
-        metadatas = (results.get("metadatas") or [[]])[0] or []
-        ids = (results.get("ids") or [[]])[0] or []
-    
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Retrieval error: {type(e).__name__}: {e}"
-        )
 
-        
-        # Fast hint: if the question mentions I Lead Me, prioritize those files
-        q_low = question.lower()
-        if "i lead me" in q_low or "ileadme" in q_low:
-            preferred_sources = ["I Lead Me (JB).pdf", "I LEAD ME The 4 Self-Leadership Patterns.pdf"]
-            for src in preferred_sources:
-                r = collection.get(where={"source": {"$eq": src}}, include=["documents", "metadatas"])
-                # take first ~2 chunks from each doc (simple + fast)
-                docs += (r.get("documents") or [])[:2]
-                metadatas += (r.get("metadatas") or [])[:2]
-                ids += (r.get("ids") or [])[:2]
-        
-        # If still not enough context, add global results
-        if len(docs) < 4:
+    try:
+        # Embed query using SAME embed model used during ingest
+        q_emb = get_embedding_ollama(question, base_url=BASE_URL, model=EMBED_MODEL)
+
+        preferred_sources = [
+            "I Lead Me (JB).pdf",
+            "I LEAD ME The 4 Self-Leadership Patterns.pdf",
+        ]
+
+        # 1) Primary retrieval
+        if is_ileadme_intent(question):
             results = collection.query(
                 query_embeddings=[q_emb],
                 n_results=6,
-                include=["documents","metadatas"]
+                where={"source": {"$in": preferred_sources}},
+                include=["documents", "metadatas"],  # ids returned automatically
             )
-            docs += (results.get("documents", [[]])[0] or [])
-            metadatas += (results.get("metadatas", [[]])[0] or [])
-            ids += (results.get("ids", [[]])[0] or [])
-        
-        # Hard cap
+        else:
+            results = collection.query(
+                query_embeddings=[q_emb],
+                n_results=6,
+                include=["documents", "metadatas"],
+            )
+
+        docs = (results.get("documents") or [[]])[0] or []
+        metadatas = (results.get("metadatas") or [[]])[0] or []
+        ids = (results.get("ids") or [[]])[0] or []
+
+        # 2) If asking about I Lead Me but retrieval came back thin, add a couple chunks directly from those sources
+        if is_ileadme_intent(question) and len(docs) < 3:
+            for src in preferred_sources:
+                r = collection.get(
+                    where={"source": {"$eq": src}},
+                    include=["documents", "metadatas"],
+                )
+                docs += (r.get("documents") or [])[:2]
+                metadatas += (r.get("metadatas") or [])[:2]
+                ids += (r.get("ids") or [])[:2]
+
+        # 3) If still thin, do a small global retrieval as backup
+        if len(docs) < 4:
+            results2 = collection.query(
+                query_embeddings=[q_emb],
+                n_results=4,
+                include=["documents", "metadatas"],
+            )
+            docs += (results2.get("documents") or [[]])[0] or []
+            metadatas += (results2.get("metadatas") or [[]])[0] or []
+            ids += (results2.get("ids") or [[]])[0] or []
+
+        # 4) Hard cap context size (keep it fast)
         docs = docs[:4]
         metadatas = metadatas[:4]
         ids = ids[:4]
 
-    
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Retrieval error: {type(e).__name__}: {e}")
-
+        raise HTTPException(
+            status_code=500,
+            detail=f"Retrieval error: {type(e).__name__}: {e}",
+        )
 
 
     # --- build context string ---
