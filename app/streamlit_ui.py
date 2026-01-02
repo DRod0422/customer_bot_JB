@@ -76,7 +76,7 @@ col1, col2 = st.columns([0.85, 0.15], vertical_alignment="center")
 with col1:
     st.markdown('<div class="jb-title">John Bentley’s AI Assistant</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="jb-subtitle">Experience and leadership questions 24 hours a day. Try to stump him!</div>',
+        '<div class="jb-subtitle">Experience and leadership questions 24 hours a day. Ask him Anything!</div>',
         unsafe_allow_html=True
     )
 with col2:
