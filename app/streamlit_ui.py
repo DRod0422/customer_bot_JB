@@ -85,7 +85,7 @@ h1 { font-size: 3.0rem !important; letter-spacing: -0.5px; }
 # ----------------------------
 # Header (matches your screenshot vibe)
 # ----------------------------
-st.title("Customer Bot (Local RAG)")
+st.title("John Bentley's AI Assitant")
 st.markdown('<div class="subtle">Experience and marketing questions 24 hours a day. Try to stump him!</div>', unsafe_allow_html=True)
 
 # ----------------------------
