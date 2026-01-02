@@ -209,9 +209,8 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
         # metadatas = results.get("metadatas", [[]])[0] or []
         # ids = results.get("ids", [[]])[0] or []
 
-        
-   except Exception as e:
-    raise HTTPException(status_code=500, detail=f"Retrieval error: {type(e).__name__}: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Retrieval error: {type(e).__name__}: {e}")
 
         # Fast hint: if the question mentions I Lead Me, prioritize those files
         q_low = question.lower()
