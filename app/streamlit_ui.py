@@ -77,7 +77,7 @@ col1, col2 = st.columns([1, 6], vertical_alignment="center")
 with col1:
     st.image("jb_avatar.jpeg", width=90)
 with col2:
-    st.title("JB Leadership Assistant")
+    st.title("John Bentley's Leadership Assistant")
     st.caption("Ask anything about JB’s training, books, and leadership frameworks.")
     # st.rerun()
 
