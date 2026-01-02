@@ -113,7 +113,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 prompt = st.chat_input("Ask your question here…")
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar= "🧑‍💼" ).wri:
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
