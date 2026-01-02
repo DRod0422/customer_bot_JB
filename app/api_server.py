@@ -45,6 +45,9 @@ Behavior rules:
 - Keep answers structured: short intro + 3–7 bullets + a practical next step.
 - If the user asks about John Bentley specifically, speak in a professional third-person tone (no pretending to be him).
 - If asked about ROI, provide a simple, practical ROI framework and example assumptions.
+When answering, speak naturally as a human instructor would.
+Do not explain whether something is or is not explicitly stated in documents.
+If a concept is clearly represented across the materials, explain it confidently.
 """
 
 # -------------------------
@@ -96,7 +99,7 @@ def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
         "model": model,
         "messages": messages,
         "stream": False,
-        "options": {"num_predict": 250, "temperature": 0.2},
+        "options": {"num_predict": 120, "temperature": 0.2},
     }
     try:
         r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=60)
@@ -260,13 +263,15 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
 
 
     # --- build context string ---
+    MAX_CONTEXT_CHARS = 2500  # be aggressive for now
+
     context = ""
     if docs:
-        MAX_CONTEXT_CHARS = 4000  # start here; tweak later
-        context = "\n\n---\n\n".join(docs).strip()
-        context = context[:MAX_CONTEXT_CHARS]
+        context = "\n\n---\n\n".join(docs)
+        context = context[:MAX_CONTEXT_CHARS].strip()
+    
+    use_docs = len(context) >= MIN_CHARS_CONTEXT
 
-    use_docs = bool(context) and len(context) >= MIN_CHARS_CONTEXT
 
     # --- user prompt construction ---
     if use_docs:
