@@ -5,175 +5,135 @@ import time
 # ----------------------------
 # Page config
 # ----------------------------
-st.set_page_config(page_title="JB Assistant", layout="centered")
+st.set_page_config(page_title="John Bentley AI Assistant", layout="centered")
 
 API_BASE = st.secrets.get("API_BASE", "http://127.0.0.1:8000")
 API_KEY = st.secrets.get("X_API_KEY", "")
 
+HEADERS = {"Content-Type": "application/json"}
+if API_KEY:
+    HEADERS["x-api-key"] = API_KEY
 
-# quick health check
-# -------------------------------
-# Backend health check
-# -------------------------------
-try:
-    health_resp = requests.get(
-        f"{API_BASE}/health",
-        headers={"x-api-key": API_KEY} if API_KEY else {},
-        timeout=3
+# ---- CSS ----
+st.markdown(
+    """
+    <style>
+      /* Page background + spacing */
+      .stApp {
+        background: radial-gradient(1200px 600px at 50% 0%, #101826 0%, #070A0F 60%, #05070B 100%);
+      }
+
+      /* Narrower content column */
+      .block-container {
+        max-width: 980px;
+        padding-top: 3.0rem;
+      }
+
+      /* Title styling */
+      .jb-title {
+        font-size: 3rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: white;
+        margin-bottom: 0.25rem;
+      }
+      .jb-subtitle {
+        color: rgba(255,255,255,0.70);
+        font-size: 1rem;
+        margin-bottom: 1.75rem;
+      }
+
+      /* Chat container card */
+      .jb-card {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 18px;
+        padding: 18px 18px 8px 18px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      }
+
+      /* Make chat messages feel a bit cleaner */
+      [data-testid="stChatMessage"] {
+        border-radius: 14px;
+        padding: 0.1rem 0.1rem;
+      }
+
+      /* Reduce extra vertical gap above chat input */
+      [data-testid="stChatInput"] {
+        margin-top: 0.75rem;
+      }
+
+      /* Hide Streamlit default footer / menu if you want */
+      #MainMenu {visibility: hidden;}
+      footer {visibility: hidden;}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# ---- Header row: title left, reset button right ----
+col1, col2 = st.columns([0.85, 0.15], vertical_alignment="center")
+with col1:
+    st.markdown('<div class="jb-title">John Bentley’s AI Assistant</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="jb-subtitle">Experience and leadership questions 24 hours a day. Try to stump him!</div>',
+        unsafe_allow_html=True
     )
-    health_resp.raise_for_status()
-    health = health_resp.json()
-    st.caption(f"Backend status: {health.get('status', 'unknown')}")
-except Exception as e:
-    st.error("Backend is not reachable. Please try again later.")
+with col2:
+    if st.button("↻", help="Reset chat", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+
+# ---- Health check (fast) ----
+try:
+    r = requests.get(f"{API_BASE}/health", headers=HEADERS, timeout=5)
+    r.raise_for_status()
+except Exception:
+    st.error("Backend is not reachable right now. Please try again in a moment.")
     st.stop()
 
-# ----------------------------
-# Minimal CSS to mimic the look
-# ----------------------------
-st.markdown("""
-<style>
-/* tighten page width + center */
-.block-container { max-width: 820px; padding-top: 2rem; }
-
-/* big title like screenshot */
-h1 { font-size: 3.0rem !important; letter-spacing: -0.5px; }
-.subtle { font-size: 1.1rem; opacity: 0.75; margin-top: -0.5rem; }
-
-/* Chat "card" container */
-.chat-card {
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 14px;
-  padding: 22px;
-  background: rgba(255,255,255,0.03);
-  margin-top: 18px;
-}
-
-/* Header row inside card (avatar + optional button) */
-.card-top {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 16px;
-}
-.avatar {
-  width: 40px; height: 40px; border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.18);
-  object-fit: cover;
-}
-
-/* message bubbles */
-.bubble {
-  padding: 14px 16px;
-  border-radius: 14px;
-  margin: 10px 0;
-  line-height: 1.35;
-  border: 1px solid rgba(255,255,255,0.10);
-}
-.user {
-  background: rgba(66,133,244,0.12);
-  margin-left: 18%;
-}
-.assistant {
-  background: rgba(255,255,255,0.06);
-  margin-right: 18%;
-}
-
-/* small helper text */
-.helper { opacity: .7; font-size: .95rem; margin-top: 6px; }
-</style>
-""", unsafe_allow_html=True)
-
-# ----------------------------
-# Header (matches your screenshot vibe)
-# ----------------------------
-st.title("John Bentley's AI Assitant")
-st.markdown('<div class="subtle">Experience and marketing questions 24 hours a day. Try to stump him!</div>', unsafe_allow_html=True)
-
-# ----------------------------
-# Session state
-# ----------------------------
+# ---- Session state ----
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "Great to see you. What leadership question can I help with today?"}
     ]
 
-def reset_chat():
-    st.session_state.messages = [
-        {"role": "assistant", "content": "Great to see you. What leadership question can I help with today?"}
-    ]
+# ---- Chat "card" container ----
+st.markdown('<div class="jb-card">', unsafe_allow_html=True)
 
-# ----------------------------
-# Chat Card UI
-# ----------------------------
-st.markdown('<div class="chat-card">', unsafe_allow_html=True)
-
-colA, colB = st.columns([6, 1])
-with colA:
-    # replace with your own hosted image if you want
-    avatar_url = "https://i.imgur.com/0y0y0y0.png"  # placeholder
-    st.markdown(f"""
-      <div class="card-top">
-        <img class="avatar" src="{avatar_url}" />
-        <div></div>
-      </div>
-    """, unsafe_allow_html=True)
-
-with colB:
-    st.button("↻", on_click=reset_chat, help="Reset chat")
-
-# render message history
 for m in st.session_state.messages:
-    css_class = "assistant" if m["role"] == "assistant" else "user"
-    st.markdown(f'<div class="bubble {css_class}">{m["content"]}</div>', unsafe_allow_html=True)
+    with st.chat_message(m["role"]):
+        st.markdown(m["content"])
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ----------------------------
-# Input + API call
-# ----------------------------
-prompt = st.chat_input("Ask your question here...")
+# ---- Single input (bottom) ----
+prompt = st.chat_input("Ask your question here…")
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-    # optimistic render of user msg immediately
-    st.rerun()
-
-# If the last message is a user message, fetch assistant response
-if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
-    question = st.session_state.messages[-1]["content"]
-
-    headers = {"Content-Type": "application/json"}
-    if API_KEY:
-        headers["x-api-key"] = API_KEY
-
-    with st.spinner("Thinking..."):
-        try:
-            resp = requests.post(
-                f"{API_BASE}/ask",
-                headers=headers,
-                json={"question": question},
-                timeout=120  # bump timeout a bit for streamlit cloud
-            )
-
-            # If backend error, show friendly msg
-            if resp.status_code != 200:
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": "I’m taking longer than expected. Please try again, or ask a shorter question."
-                })
-            else:
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking…"):
+            try:
+                resp = requests.post(
+                    f"{API_BASE}/ask",
+                    headers=HEADERS,
+                    json={"question": prompt},
+                    timeout=120
+                )
+                resp.raise_for_status()
                 data = resp.json()
-                answer = data.get("answer", "").strip() or "I’m not sure how to answer that yet."
-                st.session_state.messages.append({"role": "assistant", "content": answer})
+                answer = data.get("answer", "Sorry — I couldn't generate a response.")
+            except requests.exceptions.Timeout:
+                answer = "I’m taking longer than expected. Please try again, or ask a shorter question."
+            except Exception:
+                answer = "Something went wrong on my side. Please try again."
 
-        except requests.exceptions.Timeout:
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": "I’m taking longer than expected to answer this. Please try again in a moment."
-            })
-        except Exception:
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": "Something went sideways on my end. Please try again."
-            })
+        st.markdown(answer)
+
+    st.session_state.messages.append({"role": "assistant", "content": answer})
+
 
     st.rerun()
