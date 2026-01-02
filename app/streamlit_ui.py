@@ -79,7 +79,7 @@ with col1:
 with col2:
     st.title("JB Leadership Assistant")
     st.caption("Ask anything about JB’s training, books, and leadership frameworks.")
-        st.rerun()
+    st.rerun()
 
 # ---- Health check (fast) ----
 try:
