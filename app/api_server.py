@@ -122,7 +122,7 @@ def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
         "model": model,
         "messages": messages,
         "stream": False,
-        "options": {"num_predict": 1400, "temperature": 0.2},
+        "options": {"num_predict": 900, "temperature": 0.2},
     }
     try:
         r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=180)
