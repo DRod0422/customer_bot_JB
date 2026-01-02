@@ -183,9 +183,7 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
 
     # --- retrieve from vector store ---
     # --- retrieve from vector store (CORRECT: query by embedding) ---
-    try:
-        q_emb = get_embedding_ollama(question, base_url=BASE_URL, model=EMBED_MODEL)
-    
+    try:    
         TEACHER_MODE = not is_reference_intent(question)
 
         q_emb = get_embedding_ollama(question, base_url=BASE_URL, model=EMBED_MODEL)
@@ -210,6 +208,9 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
         docs = results.get("documents", [[]])[0] or []
         metadatas = results.get("metadatas", [[]])[0] or []
         
+   except Exception as e:
+    raise HTTPException(status_code=500, detail=f"Retrieval error: {type(e).__name__}: {e}")
+
         # Fast hint: if the question mentions I Lead Me, prioritize those files
         q_low = question.lower()
         if "i lead me" in q_low or "ileadme" in q_low:
