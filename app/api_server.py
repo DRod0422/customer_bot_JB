@@ -120,7 +120,7 @@ def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
         "model": model,
         "messages": messages,
         "stream": False,
-        "options": {"num_predict": 900, "temperature": 0.2},
+        "options": {"num_predict": 1400, "temperature": 0.2},
     }
     try:
         r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=60)
@@ -308,6 +308,11 @@ Answer instructions:
 - Use the context above when it supports the answer, but do not mention it.
 - If ROI is asked, give a simple ROI model with variables (turnover, productivity, rework, incidents) and a sample calculation.
 - Keep it clean and practical.
+
+Formatting:
+- Use markdown bullets with "- " only.
+- Do not use the "•" character.
+
 """
 
         messages = [
@@ -315,12 +320,28 @@ Answer instructions:
             {"role": "user", "content": user_prompt}
         ]
 
-        answer = _ollama_chat(messages)
-
+        answer = _ollama_chat(messages).replace("<END>", "").strip()
+        # 2) If model didn't finish, ask it to continue (same context)
+        if "<END>" not in raw_answer:
+            messages.append({"role": "assistant", "content": raw_answer})
+            messages.append({
+                "role": "user",
+                "content": "Continue from where you left off. Complete any cut-off bullets. End with <END>."
+            })
+            raw_answer2 = _ollama_chat(messages).strip()
+            raw_answer = raw_answer + "\n" + raw_answer2
+        
+        # 3) Clean final answer
+        answer = raw_answer.replace("<END>", "").strip()
+        
         # Return sources (document-based)
         sources = _format_sources(metadatas, ids)
-
-        return {"answer": answer, "sources": []}
+        return {"answer": answer, "sources": sources}
+        
+                # Return sources (document-based)
+                sources = _format_sources(metadatas, ids)
+        
+                return {"answer": answer, "sources": []}
 
     else:
         # --- fallback: general knowledge ---
@@ -332,13 +353,37 @@ Answer instructions:
 - Answer confidently using leadership and business knowledge.
 - Do not mention documents, sources, or citations.
 - Keep it clean and practical.
+
+Formatting:
+- Use markdown bullets with "- " only.
+- Do not use the "•" character.
 """
 
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt}
         ]
-        answer = _ollama_chat(messages)
-
+        answer = _ollama_chat(messages).replace("<END>", "").strip()
+ # 2) If model didn't finish, ask it to continue (same context)
+        if "<END>" not in raw_answer:
+            messages.append({"role": "assistant", "content": raw_answer})
+            messages.append({
+                "role": "user",
+                "content": "Continue from where you left off. Complete any cut-off bullets. End with <END>."
+            })
+            raw_answer2 = _ollama_chat(messages).strip()
+            raw_answer = raw_answer + "\n" + raw_answer2
+        
+        # 3) Clean final answer
+        answer = raw_answer.replace("<END>", "").strip()
+        
+        # Return sources (document-based)
+        sources = _format_sources(metadatas, ids)
+        return {"answer": answer, "sources": sources}
+        
+                # Return sources (document-based)
+                sources = _format_sources(metadatas, ids)
+        
+                return {"answer": answer, "sources": []}
         # No sources when not using docs
         return {"answer": answer, "sources": []}
