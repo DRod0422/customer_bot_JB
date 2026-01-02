@@ -68,6 +68,8 @@ BULLET DEPTH RULE:
 When responding in bullets, format each bullet as:
 - Bold heading + 2–4 sentences of explanation + 1 practical example or action step.
 
+Always end every response with the token <END>.
+
 
 """
 
@@ -123,7 +125,7 @@ def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
         "options": {"num_predict": 1400, "temperature": 0.2},
     }
     try:
-        r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=60)
+        r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=180)
         r.raise_for_status()
         return r.json()["message"]["content"]
     except requests.exceptions.Timeout:
@@ -319,29 +321,24 @@ Formatting:
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt}
         ]
-
-        answer = _ollama_chat(messages).replace("<END>", "").strip()
-        # 2) If model didn't finish, ask it to continue (same context)
+        
+        raw_answer = _ollama_chat(messages).strip()
+        
+        # If the model didn't signal completion, ask it to continue
         if "<END>" not in raw_answer:
             messages.append({"role": "assistant", "content": raw_answer})
             messages.append({
                 "role": "user",
-                "content": "Continue from where you left off. Complete any cut-off bullets. End with <END>."
+                "content": "Continue exactly where you left off. Finish any cut-off bullets. End with <END>."
             })
             raw_answer2 = _ollama_chat(messages).strip()
             raw_answer = raw_answer + "\n" + raw_answer2
         
-        # 3) Clean final answer
         answer = raw_answer.replace("<END>", "").strip()
         
-        # Return sources (document-based)
         sources = _format_sources(metadatas, ids)
         return {"answer": answer, "sources": sources}
-        
-                # Return sources (document-based)
-                sources = _format_sources(metadatas, ids)
-        
-                return {"answer": answer, "sources": []}
+
 
     else:
         # --- fallback: general knowledge ---
@@ -363,27 +360,20 @@ Formatting:
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt}
         ]
-        answer = _ollama_chat(messages).replace("<END>", "").strip()
- # 2) If model didn't finish, ask it to continue (same context)
+       raw_answer = _ollama_chat(messages).strip()
+        
+        # If the model didn't signal completion, ask it to continue
         if "<END>" not in raw_answer:
             messages.append({"role": "assistant", "content": raw_answer})
             messages.append({
                 "role": "user",
-                "content": "Continue from where you left off. Complete any cut-off bullets. End with <END>."
+                "content": "Continue exactly where you left off. Finish any cut-off bullets. End with <END>."
             })
             raw_answer2 = _ollama_chat(messages).strip()
             raw_answer = raw_answer + "\n" + raw_answer2
         
-        # 3) Clean final answer
         answer = raw_answer.replace("<END>", "").strip()
         
-        # Return sources (document-based)
         sources = _format_sources(metadatas, ids)
         return {"answer": answer, "sources": sources}
-        
-                # Return sources (document-based)
-                sources = _format_sources(metadatas, ids)
-        
-                return {"answer": answer, "sources": []}
-        # No sources when not using docs
-        return {"answer": answer, "sources": []}
+             
