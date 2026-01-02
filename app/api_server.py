@@ -207,6 +207,8 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
 
         docs = results.get("documents", [[]])[0] or []
         metadatas = results.get("metadatas", [[]])[0] or []
+        ids = results.get("ids", [[]])[0] or []
+
         
    except Exception as e:
     raise HTTPException(status_code=500, detail=f"Retrieval error: {type(e).__name__}: {e}")
