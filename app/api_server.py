@@ -33,20 +33,18 @@ client = chromadb.PersistentClient(
 collection = client.get_collection(name=COLLECTION_NAME)
 
 SYSTEM_PROMPT = """
-You are a leadership and professional development AI assistant.
+You are a helpful, confident leadership training assistant speaking in John Bentley’s teaching style:
+clear, practical, encouraging, and direct.
 
-PRIMARY RULES:
-- Use the provided document context when it is relevant.
-- If a concept, book, framework, or program is described across multiple sections,
-  summarize and explain it even if no single sentence defines it.
-- If the documents do NOT contain the answer, you may answer using general leadership
-  and business knowledge.
-- Only cite documents when they actually support the answer.
-- If answering from general knowledge, clearly state that the answer is based on
-  general knowledge and not the provided documents.
-- Do not fabricate citations.
-
-Your goal is to be helpful, clear, and accurate — not overly restrictive.
+Behavior rules:
+- Answer like a human coach/instructor, not like a document search tool.
+- Use the provided document context to shape your answer when it is relevant.
+- If the documents don’t fully cover something, fill gaps with general leadership/business knowledge.
+- NEVER mention the documents, chunks, retrieval, citations, or “not explicitly mentioned.”
+- Do not apologize or hedge (“might,” “perhaps,” “it can be inferred”) unless the user asks for uncertainty.
+- Keep answers structured: short intro + 3–7 bullets + a practical next step.
+- If the user asks about John Bentley specifically, speak in a professional third-person tone (no pretending to be him).
+- If asked about ROI, provide a simple, practical ROI framework and example assumptions.
 """
 
 # -------------------------
@@ -67,6 +65,23 @@ def health(x_api_key: str | None = Header(default=None)):
     if API_KEY and x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
     return {"status": "ok"}
+
+
+# -------------------------
+# Intent helpers
+# -------------------------
+def is_reference_intent(q: str) -> bool:
+    q = (q or "").lower()
+    triggers = [
+        "quote", "page", "cite", "source",
+        "where does it say", "references",
+        "bibliography", "list titles", "documents included"
+    ]
+    return any(t in q for t in triggers)
+
+def is_ileadme_intent(q: str) -> bool:
+    q = (q or "").lower()
+    return ("i lead me" in q) or ("ileadme" in q)
 
 
 
@@ -101,7 +116,8 @@ def _format_sources(metadatas: list[dict], ids: list[str]) -> list[dict]:
             "id": ids[i] if i < len(ids) else None
         })
     return sources
-    
+
+
 
 def detect_doc_hint(text: str) -> Optional[str]:
     t = (text or "").lower()
@@ -170,19 +186,29 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
     try:
         q_emb = get_embedding_ollama(question, base_url=BASE_URL, model=EMBED_MODEL)
     
-        results = collection.query(
-            query_embeddings=[q_emb],
-            n_results=6,
-            include=["documents", "metadatas", "distances"]
-        )
-    
+        TEACHER_MODE = not is_reference_intent(question)
+
+        q_emb = get_embedding_ollama(question, base_url=BASE_URL, model=EMBED_MODEL)
+        
+        if is_ileadme_intent(question):
+            results = collection.query(
+                query_embeddings=[q_emb],
+                n_results=6,
+                where={"source": {"$in": [
+                    "I Lead Me (JB).pdf",
+                    "I LEAD ME The 4 Self-Leadership Patterns.pdf"
+                ]}},
+                include=["documents", "metadatas"]
+            )
+        else:
+            results = collection.query(
+                query_embeddings=[q_emb],
+                n_results=6,
+                include=["documents", "metadatas"]
+            )
+
         docs = results.get("documents", [[]])[0] or []
         metadatas = results.get("metadatas", [[]])[0] or []
-        ids = results.get("ids", [[]])[0] or []
-    
-        docs = []
-        metadatas = []
-        ids = []
         
         # Fast hint: if the question mentions I Lead Me, prioritize those files
         q_low = question.lower()
@@ -230,19 +256,16 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
 Question:
 {question}
 
-Document Context (use this first):
+Context (use if helpful):
 {context}
 
-Instructions:
-- Answer confidently and directly.
-- Use the document context when it supports the answer.
-- Seamlessly combine document knowledge with general knowledge when needed.
-- NEVER mention whether documents do or do not explicitly contain a concept.
-- NEVER explain gaps in the documents unless the user explicitly asks about sources.
-- Do not apologize.
-- Do not hedge.
-- Sound like a knowledgeable human assistant, not a research tool.
+Answer instructions:
+- Give the best possible answer in a confident, coach-like tone.
+- Use the context above when it supports the answer, but do not mention it.
+- If ROI is asked, give a simple ROI model with variables (turnover, productivity, rework, incidents) and a sample calculation.
+- Keep it clean and practical.
 """
+
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt}
@@ -261,12 +284,12 @@ Instructions:
 Question:
 {question}
 
-Instructions:
-- Answer using general leadership and business knowledge.
-- Be clear and helpful.
-- Do not mention documents or citations unless you actually used them.
-- If you are unsure, say so briefly and ask a clarifying question.
+Answer instructions:
+- Answer confidently using leadership and business knowledge.
+- Do not mention documents, sources, or citations.
+- Keep it clean and practical.
 """
+
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt}
