@@ -317,17 +317,15 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
         )
 
 
-    # --- build context string ---
+   # --- build context string ---
     MAX_CONTEXT_CHARS = 2500  # be aggressive for now
-
     context = ""
     if docs:
         context = "\n\n---\n\n".join(docs)
         context = context[:MAX_CONTEXT_CHARS].strip()
     
     use_docs = len(context) >= MIN_CHARS_CONTEXT
-
-
+    
     # --- user prompt construction ---
     if use_docs:
         user_prompt = f"""
@@ -346,20 +344,16 @@ Answer instructions:
 Formatting:
 - Use markdown bullets with "- " only.
 - Do not use the "•" character.
-
 """
-
-        # In the use_docs section (around line 200):
-messages = [
-    {"role": "system", "content": SYSTEM_PROMPT},
-    {"role": "user", "content": user_prompt}
-]
-
-
-# If the model didn't signal completion, ask it to continue
-answer = _ollama_chat_with_continuation(messages)
-
-
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        answer = _ollama_chat_with_continuation(messages)
+        sources = _format_sources(metadatas, ids)
+        return {"answer": answer, "sources": sources}
+    
     else:
         # --- fallback: general knowledge ---
         user_prompt = f"""
@@ -375,10 +369,11 @@ Formatting:
 - Use markdown bullets with "- " only.
 - Do not use the "•" character.
 """
-
-messages = [
-    {"role": "system", "content": SYSTEM_PROMPT},
-    {"role": "user", "content": user_prompt}
-]
-
-answer = _ollama_chat_with_continuation(messages)
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        answer = _ollama_chat_with_continuation(messages)
+        sources = _format_sources(metadatas, ids)
+        return {"answer": answer, "sources": sources}
