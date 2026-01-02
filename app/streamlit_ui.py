@@ -123,7 +123,7 @@ if prompt:
                     f"{API_BASE}/ask",
                     headers=HEADERS,
                     json={"question": prompt},
-                    timeout=120
+                    timeout=180
                 )
                 resp.raise_for_status()
                 data = resp.json()
