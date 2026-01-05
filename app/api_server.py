@@ -338,7 +338,6 @@ Context (use if helpful):
 Answer instructions:
 - Give the best possible answer in a confident, coach-like tone.
 - Use the context above when it supports the answer, but do not mention it.
-- If ROI is asked, give a simple ROI model with variables (turnover, productivity, rework, incidents) and a sample calculation.
 - Keep it clean and practical.
 
 Formatting:
