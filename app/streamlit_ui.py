@@ -52,21 +52,31 @@ st.markdown(
       }
 
       .jb-title {
-        font-size: 2.2rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 0.25rem;
-        letter-spacing: -0.02em;
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #60a5fa;  /* Solid fallback color */
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.25rem;
+      letter-spacing: -0.02em;
+    }
+    
+    /* Better fallback for older Safari */
+    @supports not (background-clip: text) {
+      .jb-title {
+        color: #60a5fa !important;
+        background: none !important;
+        -webkit-text-fill-color: inherit !important;
       }
+    }
       
       .jb-subtitle {
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 1rem;
-        line-height: 1.5;
-      }
+      color: rgba(255, 255, 255, 0.85);  /* Changed from 0.70 */
+      font-size: 1rem;
+      line-height: 1.5;
+    }
 
       /* Chat container - glassmorphism effect */
       .jb-card {
@@ -99,6 +109,16 @@ st.markdown(
       [data-testid="stChatMessage"]:not([data-testid*="user"]) {
         background: rgba(147, 51, 234, 0.06);
         border-left: 3px solid rgba(147, 51, 234, 0.4);
+      }
+
+      /* ADD THESE NEW LINES - Force bright text in chat messages */
+      [data-testid="stChatMessage"] p,
+      [data-testid="stChatMessage"] div {
+        color: rgba(255, 255, 255, 0.95) !important;
+      }
+    
+      [data-testid="stMarkdown"] {
+        color: rgba(255, 255, 255, 0.95) !important;
       }
 
       /* Timestamp styling */
