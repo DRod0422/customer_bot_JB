@@ -1,7 +1,9 @@
 import streamlit as st
 import requests
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedata
+
+CST = timezone(timedelta(hours=-6))  # CST is UTC-6
 
 
 # ----------------------------
@@ -259,7 +261,7 @@ with header_col3:
             {
                 "role": "assistant", 
                 "content": "Great to see you. What leadership question can I help with today?",
-                "timestamp": datetime.now().strftime("%I:%M %p")
+                "timestamp": datetime.now(CST).strftime("%I:%M %p")  # CST
             }
         ]
         st.session_state.chat_count = st.session_state.get("chat_count", 0) + 1
@@ -282,7 +284,7 @@ if "messages" not in st.session_state:
         {
             "role": "assistant", 
             "content": "Great to see you. What leadership question can I help with today?",
-            "timestamp": datetime.now().strftime("%I:%M %p")
+            "timestamp": datetime.now(CST).strftime("%I:%M %p")  # CST
         }
     ]
 
@@ -304,7 +306,7 @@ prompt = st.chat_input("Ask your question here...")
 
 if prompt:
     # Add timestamp to user message
-    user_timestamp = datetime.now().strftime("%I:%M %p")
+    user_timestamp = datetime.now(CST).strftime("%I:%M %p")  # CST
     
     # Add user message
     st.session_state.messages.append({
@@ -338,7 +340,7 @@ if prompt:
             except Exception as e:
                 answer = "⚠️ Something went wrong on my side. Please try again."
 
-        assistant_timestamp = datetime.now().strftime("%I:%M %p")
+        assistant_timestamp = datetime.now(CST).strftime("%I:%M %p")  #CST
         st.markdown(answer)
         st.markdown(f'<div class="message-timestamp">{assistant_timestamp}</div>', unsafe_allow_html=True)
 
