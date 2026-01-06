@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import time
-from datetime import datetime, timezone, timedata
+from datetime import datetime, timezone, timedelta
 
 CST = timezone(timedelta(hours=-6))  # CST is UTC-6
 
