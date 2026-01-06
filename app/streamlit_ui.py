@@ -352,6 +352,39 @@ if prompt:
     
     st.rerun()
 
+
+# ---- Disclaimer Section ----
+with st.expander("ℹ️ Important Disclaimer - Please Read", expanded=False):
+    st.markdown("""
+    **AI-Generated Content Notice**
+    
+    This AI assistant provides information based on John Bentley's leadership training materials, 
+    books, and frameworks. Please note:
+    
+    - **Interpretive Nature:** All responses represent John Bentley's interpretations and perspectives 
+      on leadership concepts, models, and methodologies. These are his professional opinions based 
+      on years of experience and study.
+    
+    - **Not Professional Advice:** The information provided is for educational and informational 
+      purposes only. It does not constitute professional advice, coaching, or consulting services.
+    
+    - **AI Limitations:** While this assistant strives for accuracy, AI-generated responses may 
+      occasionally contain errors or misinterpretations. Always verify critical information 
+      independently.
+    
+    - **No Guarantees:** Results from applying these concepts may vary. Success depends on many 
+      factors including context, implementation, and individual circumstances.
+    
+    - **Supplemental Resource:** This chatbot is designed to supplement, not replace, formal 
+      training, coaching, or consulting relationships with John Bentley or qualified professionals.
+    
+    **For personalized guidance, coaching, or training services, please contact John Bentley directly.**
+    
+    By using this AI assistant, you acknowledge that you understand and accept these limitations.
+    """)
+
+st.markdown("---")
+
 # ---- Footer info (optional) ----
 st.markdown("---")
 col1, col2 = st.columns(2)
@@ -359,3 +392,5 @@ with col1:
     st.caption(f"💬 Chat session #{st.session_state.chat_count}")
 with col2:
     st.caption(f"📝 {len(st.session_state.messages)} messages")
+
+
