@@ -390,7 +390,7 @@ with st.expander("⚠️ Important Disclaimer - Please Read", expanded=False):
     - **Supplemental Resource:** This chatbot is designed to supplement, not replace, formal 
       training, coaching, or consulting relationships with John Bentley or qualified professionals.
     
-    **For personalized guidance, coaching, or training services, please contact John Bentley directly.**
+    **For personalized guidance, coaching, or training services, please contact John Bentley (e:john@power2transform.com) directly.**
     
     By using this AI assistant, you acknowledge that you understand and accept these limitations.
     """)
