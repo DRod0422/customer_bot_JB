@@ -322,8 +322,8 @@ if prompt:
     # Generate assistant response
     with st.chat_message("assistant", avatar="jb_avatar.jpeg"):
         # Typing indicator with realistic delay
-        with st.spinner("🤔 Thinking..."):
-            time.sleep(0.8)  # Brief pause for realism
+        with st.spinner("🤔 Thinking... Responses take 20-60 seconds (local AI, not cloud)"):
+            time.sleep(0.5)  # Brief pause for realism
             
             try:
                 resp = requests.post(
@@ -363,7 +363,7 @@ with col1:
 with col2:
     st.caption(f"📝 {len(st.session_state.messages)} messages")
 
-
+st.markdown("---")
 
 # ---- Disclaimer Section ----
 with st.expander("⚠️ Important Disclaimer - Please Read", expanded=False):
@@ -395,6 +395,5 @@ with st.expander("⚠️ Important Disclaimer - Please Read", expanded=False):
     By using this AI assistant, you acknowledge that you understand and accept these limitations.
     """)
 
-st.markdown("---")
 
 
