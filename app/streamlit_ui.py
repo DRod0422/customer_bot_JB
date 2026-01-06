@@ -353,8 +353,20 @@ if prompt:
     st.rerun()
 
 
+
+
+# ---- Footer info (optional) ----
+st.markdown("---")
+col1, col2 = st.columns(2)
+with col1:
+    st.caption(f"💬 Chat session #{st.session_state.chat_count}")
+with col2:
+    st.caption(f"📝 {len(st.session_state.messages)} messages")
+
+
+
 # ---- Disclaimer Section ----
-with st.expander("ℹ️ Important Disclaimer - Please Read", expanded=False):
+with st.expander("⚠️ Important Disclaimer - Please Read", expanded=False):
     st.markdown("""
     **AI-Generated Content Notice**
     
@@ -384,13 +396,5 @@ with st.expander("ℹ️ Important Disclaimer - Please Read", expanded=False):
     """)
 
 st.markdown("---")
-
-# ---- Footer info (optional) ----
-st.markdown("---")
-col1, col2 = st.columns(2)
-with col1:
-    st.caption(f"💬 Chat session #{st.session_state.chat_count}")
-with col2:
-    st.caption(f"📝 {len(st.session_state.messages)} messages")
 
 
