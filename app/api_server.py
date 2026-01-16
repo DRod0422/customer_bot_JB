@@ -54,11 +54,9 @@ def log_query(question, response_time, sources_count, error=None):
         "error": error,
         "client": "john_bentley"
     }
-    try:
-        with open(USAGE_LOG, "a") as f:
-            f.write(json.dumps(log_entry) + "\n")
-    except Exception as e:
-        print(f"Failed to log query: {e}")
+    with open(USAGE_LOG, "a") as f:
+        f.write(json.dumps(log_entry) + "\n")
+    
 
 def log_system_health():
     health = {
