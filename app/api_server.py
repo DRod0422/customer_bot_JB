@@ -11,6 +11,11 @@ import chromadb
 from chromadb.config import Settings
 
 from utils import load_config, get_embedding_ollama, chat_ollama
+import json
+import time
+import psutil
+from pathlib import Path
+
 
 app = FastAPI(title="Local RAG Backend")
 API_KEY = os.getenv("CUSTOMER_BOT_API_KEY","")
@@ -31,6 +36,43 @@ client = chromadb.PersistentClient(
     settings=Settings(allow_reset=False),
 )
 collection = client.get_collection(name=COLLECTION_NAME)
+
+# Logging setup
+LOG_DIR = Path("logs")
+LOG_DIR.mkdir(exist_ok=True)
+USAGE_LOG = LOG_DIR / "usage.jsonl"
+ERROR_LOG = LOG_DIR / "errors.jsonl"
+HEALTH_LOG = LOG_DIR / "health.jsonl"
+
+def log_query(question, response_time, sources_count, error=None):
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "question_length": len(question),
+        "response_time_sec": round(response_time, 2),
+        "sources_retrieved": sources_count,
+        "error": error,
+        "client": "john_bentley"
+    }
+    try:
+        with open(USAGE_LOG, "a") as f:
+            f.write(json.dumps(log_entry) + "\n")
+    except Exception as e:
+        print(f"Failed to log query: {e}")
+
+def log_system_health():
+    health = {
+        "timestamp": datetime.now().isoformat(),
+        "cpu_percent": psutil.cpu_percent(interval=1),
+        "ram_percent": psutil.virtual_memory().percent,
+        "ram_used_gb": round(psutil.virtual_memory().used / (1024**3), 2),
+        "disk_percent": psutil.disk_usage('/').percent
+    }
+    try:
+        with open(HEALTH_LOG, "a") as f:
+            f.write(json.dumps(health) + "\n")
+    except Exception as e:
+        print(f"Failed to log health: {e}")
+
 
 SYSTEM_PROMPT = """
 You are a helpful, confident leadership training assistant speaking in John Bentley’s teaching style:
