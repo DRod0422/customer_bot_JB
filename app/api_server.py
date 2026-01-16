@@ -291,13 +291,10 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
     question = (req.question or "").strip()
     if not question:
         response_time = time.time() - start_time
-        log_query(question, response_time, len(sources))
+        log_query(question, response_time, 0)
         return {"answer": "Please enter a question.", "sources": []}
 
     # --- retrieve from vector store ---
-    # --- retrieve from vector store (CORRECT: query by embedding) ---
-    # --- Retrieval (Chroma) ---
-       # --- Retrieval (Chroma) ---
     docs: list[str] = []
     metadatas: list[dict] = []
     ids: list[str] = []
@@ -317,7 +314,7 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
                 query_embeddings=[q_emb],
                 n_results=6,
                 where={"source": {"$in": preferred_sources}},
-                include=["documents", "metadatas"],  # ids returned automatically
+                include=["documents", "metadatas"],
             )
         else:
             results = collection.query(
@@ -330,7 +327,7 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
         metadatas = (results.get("metadatas") or [[]])[0] or []
         ids = (results.get("ids") or [[]])[0] or []
 
-        # 2) If asking about I Lead Me but retrieval came back thin, add a couple chunks directly from those sources
+        # 2) If asking about I Lead Me but retrieval came back thin
         if is_ileadme_intent(question) and len(docs) < 3:
             for src in preferred_sources:
                 r = collection.get(
@@ -352,7 +349,7 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
             metadatas += (results2.get("metadatas") or [[]])[0] or []
             ids += (results2.get("ids") or [[]])[0] or []
 
-        # 4) Hard cap context size (keep it fast)
+        # 4) Hard cap context size
         docs = docs[:4]
         metadatas = metadatas[:4]
         ids = ids[:4]
@@ -363,9 +360,8 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
             detail=f"Retrieval error: {type(e).__name__}: {e}",
         )
 
-
-   # --- build context string ---
-    MAX_CONTEXT_CHARS = 2500  # be aggressive for now
+    # --- build context string ---
+    MAX_CONTEXT_CHARS = 2500
     context = ""
     if docs:
         context = "\n\n---\n\n".join(docs)
@@ -398,6 +394,11 @@ Formatting:
         
         answer = _ollama_chat_with_continuation(messages)
         sources = _format_sources(metadatas, ids)
+        
+        # ADD LOGGING HERE (YOU WERE MISSING THIS!)
+        response_time = time.time() - start_time
+        log_query(question, response_time, len(sources))
+        
         return {"answer": answer, "sources": sources}
     
     else:
@@ -422,4 +423,8 @@ Formatting:
         
         answer = _ollama_chat_with_continuation(messages)
         sources = _format_sources(metadatas, ids)
+        
+        response_time = time.time() - start_time
+        log_query(question, response_time, len(sources))
+        
         return {"answer": answer, "sources": sources}
