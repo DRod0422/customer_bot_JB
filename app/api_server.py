@@ -132,6 +132,8 @@ class AskResponse(BaseModel):
 def health(x_api_key: str | None = Header(default=None)):
     if API_KEY and x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    log_system_health()  # ← Add this
     return {"status": "ok"}
 
 
@@ -281,12 +283,15 @@ def cosine_top_chunks_for_sources(collection, q_emb: list[float], sources: list[
 
 @app.post("/ask", response_model=AskResponse)
 def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
+    start_time = time.time() 
     # --- auth ---
     if API_KEY and x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
-
+    
     question = (req.question or "").strip()
     if not question:
+        response_time = time.time() - start_time
+        log_query(question, response_time, len(sources))
         return {"answer": "Please enter a question.", "sources": []}
 
     # --- retrieve from vector store ---
