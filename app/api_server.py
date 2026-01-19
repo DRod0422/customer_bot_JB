@@ -170,9 +170,9 @@ def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
         "messages": messages,
         "stream": False,
         "options": {
-            "num_predict": 2048,      # ← Increased from 900
+            "num_predict": 2048,
             "temperature": 0.2,
-            "num_ctx": 8192,          # ← Increased from 2048
+            "num_ctx": 8192,
             "top_p": 0.9
         },
     }
@@ -182,7 +182,10 @@ def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
         return r.json()["message"]["content"]
     except requests.exceptions.Timeout:
         return "I'm taking longer than expected to answer this. Please try again, or ask a shorter question."
-
+    except Exception as e:
+        print(f"🔴 OLLAMA ERROR: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"LLM error: {str(e)}")
+        
 # ADD THIS NEW FUNCTION HERE:
 def _ollama_chat_with_continuation(messages: list[dict], model: str = OLLAMA_MODEL, max_continuations: int = 2) -> str:
     """Chat with automatic continuation if response is cut off."""
