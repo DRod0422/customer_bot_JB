@@ -1,3 +1,4 @@
 streamlit
 requests
 psutil
+sentence-transformers
