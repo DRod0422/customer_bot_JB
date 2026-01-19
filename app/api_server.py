@@ -16,7 +16,7 @@ import json
 import time
 import psutil
 from pathlib import Path
-
+from sentence_transformers import SentenceTransformer
 
 app = FastAPI(title="Local RAG Backend")
 API_KEY = os.getenv("CUSTOMER_BOT_API_KEY","")
@@ -37,6 +37,10 @@ client = chromadb.PersistentClient(
     settings=Settings(allow_reset=False),
 )
 collection = client.get_collection(name=COLLECTION_NAME)
+
+print("Loading MiniLM embedding model...")
+minilm_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+print("✅ MiniLM loaded")
 
 # Logging setup
 LOG_DIR = Path("logs")
@@ -300,7 +304,7 @@ def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
 
     try:
         # Embed query using SAME embed model used during ingest
-        q_emb = get_embedding_ollama(question, base_url=BASE_URL, model=EMBED_MODEL)
+        q_emb = minilm_model.encode(question, convert_to_numpy=True).tolist()
 
         preferred_sources = [
             "I Lead Me (JB).pdf",
