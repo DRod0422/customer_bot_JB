@@ -186,7 +186,7 @@ def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
         print(f"🔴 OLLAMA ERROR: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail=f"LLM error: {str(e)}")
         
-# ADD THIS NEW FUNCTION HERE:
+
 def _ollama_chat_with_continuation(messages: list[dict], model: str = OLLAMA_MODEL, max_continuations: int = 2) -> str:
     """Chat with automatic continuation if response is cut off."""
     full_response = ""
