@@ -241,18 +241,18 @@ st.markdown(
       
       /* Force disclaimer expander header to be readable */
       div[data-testid="stExpander"] summary p {
-        color: #000000 !important;
-        font-weight: 700 !important;
-        font-size: 16px !important;
-        opacity: 1 !important;
+          color: rgba(255, 255, 255, 0.95) !important;  /* Bright white text */
+          font-weight: 700 !important;
+          font-size: 16px !important;
+          opacity: 1 !important;
       }
-    
-      /* Make the expander background slightly yellow to draw attention */
+        
+      /* Subtle border for attention without bright background */
       div[data-testid="stExpander"] {
-          background-color: #FFF3CD !important;
-          border: 2px solid #FFA500 !important;
-          border-radius: 8px !important;
-          padding: 5px !important;
+          background-color: transparent !important;  /* Transparent background */
+          border: 1px solid rgba(255, 255, 255, 0.2) !important;  /* Subtle white border */
+          border-radius: 12px !important;
+          padding: 8px !important;
       }
        
     </style>
