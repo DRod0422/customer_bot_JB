@@ -238,6 +238,23 @@ st.markdown(
         display: inline-block;
         animation: pulse 1.5s ease-in-out infinite;
       }
+      
+      /* Force disclaimer expander header to be readable */
+      div[data-testid="stExpander"] summary p {
+        color: #000000 !important;
+        font-weight: 700 !important;
+        font-size: 16px !important;
+        opacity: 1 !important;
+      }
+    
+      /* Make the expander background slightly yellow to draw attention */
+      div[data-testid="stExpander"] {
+          background-color: #FFF3CD !important;
+          border: 2px solid #FFA500 !important;
+          border-radius: 8px !important;
+          padding: 5px !important;
+      }
+       
     </style>
     """,
     unsafe_allow_html=True
