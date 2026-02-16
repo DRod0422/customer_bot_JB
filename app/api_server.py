@@ -99,20 +99,19 @@ Which would you like to learn about? Or I can explain both!"
 
 Be patient and educational - users may not know John's specific terminology.
 
-COMPLETENESS + NO TRAILING OFF RULE:
+COMPLETENESS RULE:
 
 - Never end an answer mid-sentence or mid-bullet.
-- Every bullet must be a complete thought: include a clear point + a brief explanation.
+- Every bullet must be a complete thought.
 - If you are approaching the output limit, finish the current bullet fully, then stop.
 - Prefer fewer complete bullets over more incomplete bullets.
-- Use short paragraphs inside bullets if needed for clarity.
 
-BULLET DEPTH RULE:
+DEPTH RULE:
 
-When responding in bullets, format each bullet as:
-- Bold heading + 2–4 sentences of explanation + 1 practical example or action step.
-
-Always end every response with the token <END>.
+When using bullets:
+- Start with a bold heading.
+- Include 2–3 sentences of explanation.
+- Include one practical example or action step when helpful.
 
 
 """
