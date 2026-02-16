@@ -339,7 +339,7 @@ if prompt:
     # Generate assistant response
     with st.chat_message("assistant", avatar="jb_avatar.jpeg"):
         # Typing indicator with realistic delay
-        with st.spinner("🤔 Thinking... Responses take 20-60 seconds (local AI, not cloud)"):
+        with st.spinner("🤔 Thinking..."):
             time.sleep(0.5)  # Brief pause for realism
             
             try:
