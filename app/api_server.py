@@ -39,8 +39,10 @@ client = chromadb.PersistentClient(
 collection = client.get_collection(name=COLLECTION_NAME)
 
 print("Loading MiniLM embedding model...")
-minilm_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-print("✅ MiniLM loaded")
+import torch
+device = "cuda" if torch.cuda.is_available() else "cpu"
+minilm_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device=device)
+print(f"✅ MiniLM loaded on {device}")
 
 # Logging setup
 LOG_DIR = Path("logs")
@@ -162,27 +164,40 @@ MIN_CHARS_CONTEXT = 200
 OLLAMA_CHAT_URL = os.getenv("OLLAMA_CHAT_URL", "http://127.0.0.1:11434/api/chat")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", LLM_MODEL)
 
-def _ollama_chat(messages: list[dict], model: str = OLLAMA_MODEL) -> str:
+def is_deep_dive(q: str) -> bool:
+    ql = (q or "").lower()
+    triggers = [
+        "in depth", "deep dive", "framework", "walk me through", "step by step",
+        "detailed", "examples", "role play", "scenario", "script", "how do i",
+        "implementation", "implement", "practice"
+    ]
+    return (len(ql) > 140) or any(t in ql for t in triggers)
+
+def _ollama_chat(messages: list[dict], question: str, model: str = OLLAMA_MODEL) -> str:
+    deep = is_deep_dive(question)
+
     payload = {
         "model": model,
         "messages": messages,
         "stream": False,
         "options": {
-            "num_predict": 2048,
+            # fast by default, deeper when needed
+            "num_predict": 1400 if deep else 700,
             "temperature": 0.2,
-            "num_ctx": 8192,
+            "num_ctx": 8192 if deep else 4096,
             "top_p": 0.9
         },
     }
     try:
         r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=180)
         r.raise_for_status()
-        return r.json()["message"]["content"]
+        return r.json()["message"]["content"].strip()
     except requests.exceptions.Timeout:
         return "I'm taking longer than expected to answer this. Please try again, or ask a shorter question."
     except Exception as e:
         print(f"🔴 OLLAMA ERROR: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail=f"LLM error: {str(e)}")
+
 
 def _ollama_chat_with_continuation(messages: list[dict], model: str = OLLAMA_MODEL, max_continuations: int = 2) -> str:
     """Chat with automatic continuation if response is cut off."""
@@ -395,7 +410,7 @@ Formatting:
             {"role": "user", "content": user_prompt}
         ]
         
-        answer = _ollama_chat_with_continuation(messages)
+        answer = answer = _ollama_chat(messages, question=question)
         sources = _format_sources(metadatas, ids)
         
         # ADD LOGGING HERE (YOU WERE MISSING THIS!)
@@ -411,6 +426,7 @@ Question:
 {question}
 
 Answer instructions:
+- If the question needs depth, use: Takeaway → Framework → Example → Action Steps.
 - Answer confidently using leadership and business knowledge.
 - Do not mention documents, sources, or citations.
 - Keep it clean and practical.
@@ -424,7 +440,7 @@ Formatting:
             {"role": "user", "content": user_prompt}
         ]
         
-        answer = _ollama_chat_with_continuation(messages)
+        answer = answer = _ollama_chat(messages, question=question)
         sources = _format_sources(metadatas, ids)
         
         response_time = time.time() - start_time
